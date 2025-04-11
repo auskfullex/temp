@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- accounting-csv-loader.html -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounting Question CSV Loader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      color: #2c3e50;
+    }
+    .container {
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .upload-container {
+      border: 2px dashed #3498db;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .preview-container {
+      margin-top: 20px;
+      display: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .feedback {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    #question-count {
+      font-weight: bold;
+      font-size: 18px;
+      margin-top: 15px;
+      display: none;
+    }
+    .steps {
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #e2f0fb;
+      border-radius: 8px;
+    }
+    .csv-example {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    #upload-btn {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Accounting Question CSV Loader</h1>
+  
+  <div class="container">
+    <h2>Upload CSV File with Accounting Questions</h2>
+    
+    <div class="upload-container">
+      <input type="file" id="csv-file" accept=".csv">
+      <p>Drag & drop your CSV file here or click to browse</p>
+      <button id="upload-btn" onclick="processCSV()">Process CSV</button>
+    </div>
+    
+    <div id="feedback" class="feedback" style="display: none;"></div>
+    <div id="question-count"></div>
+    
+    <div id="preview-container" class="preview-container">
+      <h3>Preview of Loaded Questions</h3>
+      <div id="questions-preview"></div>
+      
+      <button id="export-btn" onclick="exportQuestions()">Export Questions for Practice Tool</button>
+    </div>
+    
+    <div class="steps">
+      <h3>How to Prepare Your CSV File</h3>
+      <ol>
+        <li>Create a CSV file with the following structure:
+          <ul>
+            <li>Column 1: Question number</li>
+            <li>Column 2: "Question" or "Answers" indicator</li>
+            <li>Column 3: Question text or account name</li>
+            <li>Column 4: Debit amount (for answer rows)</li>
+            <li>Column 5: Credit amount (for answer rows)</li>
+          </ul>
+        </li>
+        <li>Each question should have one row with "Question" in column 2, followed by one or more rows with "Answers" in column 2.</li>
+        <li>Blank rows can be used to separate different questions.</li>
+      </ol>
+      
+      <h4>Example CSV Format:</h4>
+      <div class="csv-example">
+1,Question,"Your company purchases a computer paying $1,000 cash.",,
+,Answers,Equipment,"$1,000.00",
+,,Cash,,"$1,000.00"
+,,,,
+2,Question,"Rancho Landscape has an old truck that originally cost $10,000...",,
+,Answers,Vehicles,"$25,000.00",
+,,Accumulated Depreciation,"$8,000.00",
+,,Vehicles,,"$10,000.00"
+,,Cash,,"$21,500.00"
+,,Gains,,"$1,500.00"
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variable to store parsed questions
+    let parsedQuestions = [];
+    
+    function processCSV() {
+      const fileInput = document.getElementById('csv-file');
+      const feedbackDiv = document.getElementById('feedback');
+      
+      if (!fileInput.files.length) {
+        feedbackDiv.className = 'feedback error';
+        feedbackDiv.innerHTML = '<p>Please select a CSV file to upload.</p>';
+        feedbackDiv.style.display = 'block';
+        return;
+      }
+      
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        try {
+          // Parse CSV content
+          const content = e.target.result;
+          const parsedData = parseCSV(content);
+          
+          // Process parsed data into question objects
+          parsedQuestions = extractQuestions(parsedData);
+          
+          // Display feedback
+          feedbackDiv.className = 'feedback success';
+          feedbackDiv.innerHTML = `<p>Successfully parsed ${parsedQuestions.length} questions from CSV.</p>`;
+          feedbackDiv.style.display = 'block';
+          
+          // Update question count
+          const questionCountDiv = document.getElementById('question-count');
+          questionCountDiv.textContent = `Total Questions: ${parsedQuestions.length}`;
+          questionCountDiv.style.display = 'block';
+          
+          // Display preview
+          displayQuestionPreview(parsedQuestions);
+          document.getElementById('preview-container').style.display = 'block';
+          
+        } catch (error) {
+          feedbackDiv.className = 'feedback error';
+          feedbackDiv.innerHTML = `<p>Error processing CSV: ${error.message}</p>`;
+          feedbackDiv.style.display = 'block';
+        }
+      };
+      
+      reader.onerror = function() {
+        feedbackDiv.className = 'feedback error';
+        feedbackDiv.innerHTML = '<p>Error reading the file.</p>';
+        feedbackDiv.style.display = 'block';
+      };
+      
+      reader.readAsText(file);
+    }
+    
+    function parseCSV(csvContent) {
+      const rows = csvContent.split(/\r?\n/);
+      const data = [];
+      
+      for (const row of rows) {
+        if (row.trim() === '') continue;
+        
+        // Handle quoted fields with commas inside
+        const processedRow = [];
+        let inQuotes = false;
+        let currentField = '';
+        
+        for (let i = 0; i < row.length; i++) {
+          const char = row[i];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            processedRow.push(currentField);
+            currentField = '';
+          } else {
+            currentField += char;
+          }
+        }
+        
+        // Add the last field
+        processedRow.push(currentField);
+        
+        // Remove quotes from fields
+        const cleanedRow = processedRow.map(field => {
+          // Remove surrounding quotes
+          field = field.trim();
+          if (field.startsWith('"') && field.endsWith('"')) {
+            field = field.substring(1, field.length - 1);
+          }
+          return field;
+        });
+        
+        data.push(cleanedRow);
+      }
+      
+      return data;
+    }
+    
+    function extractQuestions(parsedData) {
+      const questions = [];
+      let currentQuestion = null;
+      
+      for (const row of parsedData) {
+        if (row.length < 3) continue;
+        
+        const questionNumber = row[0].trim();
+        const rowType = row[1].trim();
+        
+        if (rowType.toLowerCase() === 'question') {
+          // Start a new question
+          if (currentQuestion) {
+            questions.push(currentQuestion);
+          }
+          
+          currentQuestion = {
+            id: questionNumber || questions.length + 1,
+            transaction: row[2].trim(),
+            solution: []
+          };
+        } else if (rowType.toLowerCase() === 'answers' || rowType === '') {
+          // Add an answer entry to the current question
+          if (currentQuestion) {
+            const account = row[2].trim();
+            let debit = parseFloat(row[3].replace(/[$,]/g, '')) || 0;
+            let credit = parseFloat(row[4].replace(/[$,]/g, '')) || 0;
+            
+            // Only add if there's an account and either debit or credit amount
+            if (account && (debit > 0 || credit > 0)) {
+              currentQuestion.solution.push({
+                account: account,
+                debit: debit,
+                credit: credit
+              });
+            }
+          }
+        }
+      }
+      
+      // Add the last question if it exists
+      if (currentQuestion && currentQuestion.solution.length > 0) {
+        questions.push(currentQuestion);
+      }
+      
+      return questions;
+    }
+    
+    function displayQuestionPreview(questions) {
+      const previewDiv = document.getElementById('questions-preview');
+      previewDiv.innerHTML = '';
+      
+      questions.forEach((question, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.innerHTML = `
+          <h4>Question ${index + 1}: ${question.transaction}</h4>
+          <table>
+            <tr>
+              <th>Account</th>
+              <th>Debit ($)</th>
+              <th>Credit ($)</th>
+            </tr>
+            ${question.solution.map(entry => `
+              <tr>
+                <td>${entry.account}</td>
+                <td>${entry.debit > 0 ? entry.debit.toFixed(2) : ''}</td>
+                <td>${entry.credit > 0 ? entry.credit.toFixed(2) : ''}</td>
+              </tr>
+            `).join('')}
+          </table>
+          <hr>
+        `;
+        previewDiv.appendChild(questionDiv);
+      });
+    }
+    
+    function exportQuestions() {
+      if (parsedQuestions.length === 0) {
+        const feedbackDiv = document.getElementById('feedback');
+        feedbackDiv.className = 'feedback error';
+        feedbackDiv.innerHTML = '<p>No questions to export. Please load a CSV first.</p>';
+        feedbackDiv.style.display = 'block';
+        return;
+      }
+      
+      // Add hints to questions
+      parsedQuestions.forEach(question => {
+        if (!question.hint) {
+          question.hint = "Think about the accounts affected by this transaction.";
+        }
+      });
+      
+      // Store in localStorage for the practice tool to use
+      localStorage.setItem('accountingQuestions', JSON.stringify(parsedQuestions));
+      
+      // Try to find the practice tool window if it was the opener
+      let practiceWindow = null;
+      
+      // Check if we were opened by the practice tool window
+      if (window.opener && !window.opener.closed) {
+        practiceWindow = window.opener;
+      } else {
+        // If not opened by practice tool, open a new practice tool window
+        practiceWindow = window.open('accounting-practice-tool.html', '_blank', 'width=1000,height=800,resizable=yes');
+      }
+      
+      // Add an event to notify the practice tool window once it's loaded
+      const checkLoaded = setInterval(() => {
+        try {
+          if (practiceWindow.document.readyState === 'complete') {
+            clearInterval(checkLoaded);
+            
+            // Call the loadCSVQuestions function in the practice tool
+            if (practiceWindow.loadCSVQuestions) {
+              practiceWindow.loadCSVQuestions(true);
+            } else {
+              // If the function doesn't exist yet, try again in a bit
+              setTimeout(() => {
+                if (practiceWindow.loadCSVQuestions) {
+                  practiceWindow.loadCSVQuestions(true);
+                }
+              }, 1000);
+            }
+          }
+        } catch (e) {
+          // Handle potential cross-origin issues
+          clearInterval(checkLoaded);
+        }
+      }, 200);
+      
+      // Create success message
+      const feedbackDiv = document.getElementById('feedback');
+      feedbackDiv.className = 'feedback success';
+      feedbackDiv.innerHTML = `
+        <p>Successfully exported ${parsedQuestions.length} questions.</p>
+        <p>The practice tool is being updated with the new questions.</p>
+      `;
+      feedbackDiv.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

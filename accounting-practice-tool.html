@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- accounting-practice-tool.html -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounting Journal Entry Practice</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      color: #2c3e50;
+    }
+    .problem-container {
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .transaction {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .entry-row input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .feedback {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .correct {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .incorrect {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    .hint {
+      background-color: #fff3cd;
+      color: #856404;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      display: none;
+    }
+    .solution {
+      background-color: #e2f0fb;
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 15px;
+      display: none;
+    }
+    .add-row-btn {
+      background-color: #28a745;
+    }
+    .remove-row-btn {
+      background-color: #dc3545;
+    }
+    .action-buttons {
+      margin: 10px 0;
+    }
+    .action-buttons button {
+      margin-right: 10px;
+    }
+    .problem-controls {
+      display: flex;
+      justify-content: space-between;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    #custom-transaction {
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+    }
+    input[type="number"] {
+      text-align: right;
+    }
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      background-color: #e2f0fb;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .question-selector {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .question-selector select {
+      margin-left: 10px;
+      padding: 8px;
+      font-size: 16px;
+    }
+    .data-source {
+      background-color: #e8f4f8;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    .button-group button {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Accounting Journal Entry Practice</h1>
+  
+  <div class="data-source" id="data-source">
+    <p><strong>Data Source:</strong> <span id="source-info">Default example questions</span></p>
+    <div class="button-group">
+      <button onclick="openCSVUploader()">Load Questions from CSV Uploader</button>
+      <button onclick="useDefaultQuestions()">Use Default Questions</button>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div>Question: <span id="question-number">1</span> of <span id="total-questions">5</span></div>
+    <div>Correct: <span id="correct-count">0</span></div>
+  </div>
+  
+  <div class="question-selector">
+    <label for="question-select">Jump to Question:</label>
+    <select id="question-select" onchange="jumpToQuestion()"></select>
+  </div>
+  
+  <div class="problem-container">
+    <div class="transaction" id="transaction-text">Your company purchases a computer paying $1,000 cash.</div>
+    
+    <table id="journal-table">
+      <thead>
+        <tr>
+          <th>Account Title</th>
+          <th>Debit ($)</th>
+          <th>Credit ($)</th>
+        </tr>
+      </thead>
+      <tbody id="entry-rows">
+        <tr class="entry-row">
+          <td><input type="text" class="account-title" placeholder="Enter account name"></td>
+          <td><input type="number" class="debit-amount" min="0" step="0.01" placeholder="0.00"></td>
+          <td><input type="number" class="credit-amount" min="0" step="0.01" placeholder="0.00"></td>
+        </tr>
+        <tr class="entry-row">
+          <td><input type="text" class="account-title" placeholder="Enter account name"></td>
+          <td><input type="number" class="debit-amount" min="0" step="0.01" placeholder="0.00"></td>
+          <td><input type="number" class="credit-amount" min="0" step="0.01" placeholder="0.00"></td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="action-buttons">
+      <button class="add-row-btn" onclick="addRow()">Add Row</button>
+      <button class="remove-row-btn" onclick="removeRow()">Remove Row</button>
+    </div>
+    
+    <div class="controls">
+      <button onclick="checkAnswer()">Check Answer</button>
+      <button onclick="showHint()">Show Hint</button>
+      <button onclick="showSolution()">Show Solution</button>
+      <button onclick="resetProblem()">Reset</button>
+      <button onclick="prevQuestion()">Previous</button>
+      <button onclick="nextQuestion()">Next</button>
+    </div>
+    
+    <div id="feedback" class="feedback" style="display: none;"></div>
+    <div id="hint" class="hint"></div>
+    <div id="solution" class="solution"></div>
+  </div>
+
+  <script>
+    // Default problems
+    const defaultProblems = [
+      {
+        id: 1,
+        transaction: "Your company purchases a computer paying $1,000 cash.",
+        solution: [
+          { account: "Computer Equipment", debit: 1000, credit: 0 },
+          { account: "Cash", debit: 0, credit: 1000 }
+        ],
+        hint: "Remember: when you acquire an asset, you debit the asset account and credit what you gave up."
+      },
+      {
+        id: 2,
+        transaction: "You provide $5,000 of consulting services on account.",
+        solution: [
+          { account: "Accounts Receivable", debit: 5000, credit: 0 },
+          { account: "Service Revenue", debit: 0, credit: 5000 }
+        ],
+        hint: "When you earn revenue on credit, you record an asset (what you'll receive) and the revenue earned."
+      },
+      {
+        id: 3,
+        transaction: "You pay $2,500 for three months of rent in advance.",
+        solution: [
+          { account: "Prepaid Rent", debit: 2500, credit: 0 },
+          { account: "Cash", debit: 0, credit: 2500 }
+        ],
+        hint: "When you pay for expenses in advance, you record an asset until the expense is used up."
+      },
+      {
+        id: 4,
+        transaction: "You purchase $3,000 of office supplies on account.",
+        solution: [
+          { account: "Office Supplies", debit: 3000, credit: 0 },
+          { account: "Accounts Payable", debit: 0, credit: 3000 }
+        ],
+        hint: "When you acquire supplies on credit, you record the asset and what you owe."
+      },
+      {
+        id: 5,
+        transaction: "Your client pays $4,000 for services you will provide next month.",
+        solution: [
+          { account: "Cash", debit: 4000, credit: 0 },
+          { account: "Unearned Revenue", debit: 0, credit: 4000 }
+        ],
+        hint: "When you receive payment before providing services, you record a liability until the service is performed."
+      }
+    ];
+    
+    let problems = [...defaultProblems];
+    let currentProblemIndex = 0;
+    let correctAnswers = 0;
+    
+    // Initialize the page
+    function initializePage() {
+      // Try to load questions from localStorage (set by CSV uploader)
+      window.loadCSVQuestions(false);
+      
+      // Update the question selector dropdown
+      updateQuestionSelector();
+      
+      // Load the first problem
+      loadCurrentProblem();
+      
+      // Update status bar
+      updateStatusBar();
+      
+      // Add event listener for messages from CSV uploader
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'accountingQuestions' && e.newValue) {
+          window.loadCSVQuestions(true);
+        }
+      });
+    }
+    
+    // Function to open the CSV uploader in a new window
+    function openCSVUploader() {
+      // Use complete URL path and ensure window opens with proper parameters
+      const uploaderWindow = window.open('accounting-csv-loader.html', '_blank', 'width=900,height=700,resizable=yes');
+      
+      // Ensure the window was opened successfully
+      if (!uploaderWindow || uploaderWindow.closed || typeof uploaderWindow.closed=='undefined') {
+        // If popup was blocked, inform user
+        alert("The CSV uploader window was blocked by your browser. Please allow popups for this site and try again.");
+      }
+    }
+    
+    // Function to load questions from localStorage (set by CSV uploader)
+    // This is defined in the global scope so it can be called from the CSV uploader
+    window.loadCSVQuestions = function(showMessage = true) {
+      const storedQuestions = localStorage.getItem('accountingQuestions');
+      
+      if (storedQuestions) {
+        problems = JSON.parse(storedQuestions);
+        currentProblemIndex = 0;
+        correctAnswers = 0;
+        
+        document.getElementById('source-info').textContent = 'CSV imported questions';
+        
+        if (showMessage) {
+          const feedback = document.getElementById('feedback');
+          feedback.className = 'feedback correct';
+          feedback.innerHTML = `<p>Successfully loaded ${problems.length} questions from CSV.</p>`;
+          feedback.style.display = 'block';
+        }
+        
+        // Update the interface
+        updateQuestionSelector();
+        loadCurrentProblem();
+        updateStatusBar();
+      } else if (showMessage) {
+        const feedback = document.getElementById('feedback');
+        feedback.className = 'feedback incorrect';
+        feedback.innerHTML = `<p>No questions found. Please first use the CSV Uploader tool to upload questions.</p>`;
+        feedback.style.display = 'block';
+      }
+    }
+    
+    function useDefaultQuestions() {
+      problems = [...defaultProblems];
+      currentProblemIndex = 0;
+      correctAnswers = 0;
+      
+      document.getElementById('source-info').textContent = 'Default example questions';
+      
+      const feedback = document.getElementById('feedback');
+      feedback.className = 'feedback correct';
+      feedback.innerHTML = `<p>Loaded ${problems.length} default questions.</p>`;
+      feedback.style.display = 'block';
+      
+      // Update the interface
+      updateQuestionSelector();
+      loadCurrentProblem();
+      updateStatusBar();
+    }
+    
+    function updateQuestionSelector() {
+      const selector = document.getElementById('question-select');
+      selector.innerHTML = '';
+      
+      problems.forEach((problem, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `Question ${index + 1}`;
+        selector.appendChild(option);
+      });
+      
+      selector.value = currentProblemIndex;
+    }
+    
+    function jumpToQuestion() {
+      const selector = document.getElementById('question-select');
+      currentProblemIndex = parseInt(selector.value);
+      loadCurrentProblem();
+      updateStatusBar();
+    }
+    
+    // Update the status bar
+    function updateStatusBar() {
+      document.getElementById('question-number').textContent = currentProblemIndex + 1;
+      document.getElementById('total-questions').textContent = problems.length;
+      document.getElementById('correct-count').textContent = correctAnswers;
+      
+      // Update question selector
+      const selector = document.getElementById('question-select');
+      selector.value = currentProblemIndex;
+    }
+    
+    // Load the current problem
+    function loadCurrentProblem() {
+      const problem = problems[currentProblemIndex];
+      document.getElementById('transaction-text').textContent = problem.transaction;
+      document.getElementById('hint').textContent = problem.hint || "Think about the accounts affected by this transaction.";
+      
+      // Prepare the solution display
+      let solutionHTML = '<h3>Solution:</h3><table><tr><th>Account Title</th><th>Debit ($)</th><th>Credit ($)</th></tr>';
+      problem.solution.forEach(entry => {
+        solutionHTML += `<tr><td>${entry.account}</td><td>${entry.debit > 0 ? entry.debit.toFixed(2) : ''}</td><td>${entry.credit > 0 ? entry.credit.toFixed(2) : ''}</td></tr>`;
+      });
+      solutionHTML += '</table>';
+      document.getElementById('solution').innerHTML = solutionHTML;
+      
+      // Reset display states
+      document.getElementById('feedback').style.display = 'none';
+      document.getElementById('hint').style.display = 'none';
+      document.getElementById('solution').style.display = 'none';
+      
+      // Reset the form
+      const table = document.getElementById('entry-rows');
+      table.innerHTML = '';
+      for (let i = 0; i < 2; i++) {
+        addRow(false);
+      }
+    }
+    
+    function checkAnswer() {
+      const feedback = document.getElementById('feedback');
+      const problem = problems[currentProblemIndex];
+      const rows = document.querySelectorAll('.entry-row');
+      
+      let studentEntries = [];
+      let totalDebits = 0;
+      let totalCredits = 0;
+      
+      // Collect student entries
+      rows.forEach(row => {
+        const account = row.querySelector('.account-title').value.trim();
+        const debit = parseFloat(row.querySelector('.debit-amount').value) || 0;
+        const credit = parseFloat(row.querySelector('.credit-amount').value) || 0;
+        
+        if (account && (debit > 0 || credit > 0)) {
+          studentEntries.push({ account, debit, credit });
+          totalDebits += debit;
+          totalCredits += credit;
+        }
+      });
+      
+      // Check if entries balance
+      const balanced = Math.abs(totalDebits - totalCredits) < 0.01;
+      
+      if (!balanced) {
+        feedback.className = 'feedback incorrect';
+        feedback.innerHTML = `<h3>Entries don't balance</h3>
+                             <p>Total Debits: $${totalDebits.toFixed(2)}</p>
+                             <p>Total Credits: $${totalCredits.toFixed(2)}</p>
+                             <p>Remember: Debits must equal Credits!</p>`;
+        feedback.style.display = 'block';
+        return;
+      }
+      
+      // Check if the solution is correct
+      let correct = true;
+      let matchedSolution = Array(problem.solution.length).fill(false);
+      
+      if (studentEntries.length !== problem.solution.length) {
+        correct = false;
+      } else {
+        // For each student entry, try to find a matching solution entry
+        for (let i = 0; i < studentEntries.length; i++) {
+          const studentEntry = studentEntries[i];
+          let found = false;
+          
+          for (let j = 0; j < problem.solution.length; j++) {
+            if (matchedSolution[j]) continue; // Skip already matched solution entries
+            
+            const solutionEntry = problem.solution[j];
+            // More flexible matching for account names
+            const accountMatches = accountNamesMatch(studentEntry.account, solutionEntry.account);
+            const debitMatches = Math.abs(studentEntry.debit - solutionEntry.debit) < 0.01;
+            const creditMatches = Math.abs(studentEntry.credit - solutionEntry.credit) < 0.01;
+            
+            if (accountMatches && debitMatches && creditMatches) {
+              matchedSolution[j] = true;
+              found = true;
+              break;
+            }
+          }
+          
+          if (!found) {
+            correct = false;
+            break;
+          }
+        }
+      }
+      
+      // Display feedback
+      if (correct) {
+        // Increment correct count if this is the first time getting it right
+        if (!problem.answeredCorrectly) {
+          correctAnswers++;
+          problem.answeredCorrectly = true;
+          updateStatusBar();
+        }
+        
+        feedback.className = 'feedback correct';
+        feedback.innerHTML = '<h3>Correct!</h3><p>Your journal entries are correct. Well done!</p>';
+      } else {
+        feedback.className = 'feedback incorrect';
+        feedback.innerHTML = '<h3>Not quite right</h3><p>Your journal entries need some adjustment. Check the account names and amounts.</p>';
+      }
+      feedback.style.display = 'block';
+    }
+    
+    // More flexible account name matching
+    function accountNamesMatch(studentAccount, solutionAccount) {
+      // Convert both to lowercase for case-insensitive comparison
+      const student = studentAccount.toLowerCase();
+      const solution = solutionAccount.toLowerCase();
+      
+      // Direct match
+      if (student === solution) return true;
+      
+      // Common variations
+      const variations = {
+        'cash': ['cash', 'cash on hand'],
+        'accounts receivable': ['accounts receivable', 'a/r', 'ar'],
+        'accounts payable': ['accounts payable', 'a/p', 'ap'],
+        'equipment': ['equipment', 'computer equipment', 'office equipment'],
+        'unearned revenue': ['unearned revenue', 'deferred revenue'],
+        'accumulated depreciation': ['accumulated depreciation', 'accum. depreciation', 'accumulated dep.'],
+        'vehicles': ['vehicles', 'vehicle', 'trucks', 'cars', 'automobile']
+      };
+      
+      // Check if either account is a variation of the other
+      for (const [standard, aliases] of Object.entries(variations)) {
+        if ((solution === standard || aliases.includes(solution)) && 
+            (student === standard || aliases.includes(student))) {
+          return true;
+        }
+      }
+      
+      return false;
+    }
+    
+    function prevQuestion() {
+      if (currentProblemIndex > 0) {
+        currentProblemIndex--;
+        loadCurrentProblem();
+        updateStatusBar();
+      }
+    }
+    
+    function nextQuestion() {
+      if (currentProblemIndex < problems.length - 1) {
+        currentProblemIndex++;
+        loadCurrentProblem();
+        updateStatusBar();
+      }
+    }
+    
+    // Initialize the page when loaded
+    window.onload = initializePage;
